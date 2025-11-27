@@ -1,19 +1,50 @@
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import os
+import time
+
+_TLD_CACHE_FILE = os.path.join(os.path.dirname(__file__), "tlds_cache.txt")
+_TLD_CACHE_TTL = 60 * 60 * 24  # 1 day
+
 def get_all_tlds():
     """
-    Returns a list of all active top-level domains (TLDs) fetched from a public source.
+    Returns a list of all active top-level domains (TLDs), using a local cache if available and fresh.
     """
     url = "https://raw.githubusercontent.com/incognico/list-of-top-level-domains/master/tlds.csv"
+    # Check cache
+    if os.path.exists(_TLD_CACHE_FILE):
+        mtime = os.path.getmtime(_TLD_CACHE_FILE)
+        if time.time() - mtime < _TLD_CACHE_TTL:
+            try:
+                with open(_TLD_CACHE_FILE, "r", encoding="utf-8") as f:
+                    tlds = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+                return tlds
+            except Exception as e:
+                print("Error reading TLD cache:", e)
+    # Download and cache
     try:
         resp = requests.get(url)
         resp.raise_for_status()
         lines = resp.text.splitlines()
         tlds = [line.split(",")[0].strip() for line in lines if line.strip() and not line.startswith("#")]
+        try:
+            with open(_TLD_CACHE_FILE, "w", encoding="utf-8") as f:
+                for tld in tlds:
+                    f.write(tld + "\n")
+        except Exception as e:
+            print("Error writing TLD cache:", e)
         return tlds
     except requests.RequestException as e:
         print("Error fetching TLD list:", e)
+        # Try to use cache even if stale
+        if os.path.exists(_TLD_CACHE_FILE):
+            try:
+                with open(_TLD_CACHE_FILE, "r", encoding="utf-8") as f:
+                    tlds = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+                return tlds
+            except Exception as e:
+                print("Error reading TLD cache:", e)
         return []
 
 def ping_website(url, timeout=5):

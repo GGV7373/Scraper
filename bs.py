@@ -1,10 +1,14 @@
+
 import os
 import requests
 from bs4 import BeautifulSoup
+import time
 
-def save_html_files(base, domains, log_callback=None):
+
+def save_html_files(base, domains, log_callback=None, delay=0):
     """
     For each (suffix, url) in domains, fetch HTML and save important elements to base/base-suffix.txt.
+    Uses requests.Session for efficiency. Optionally delays between requests.
     Returns a dict with scrape statistics for reporting.
     """
     folder = base
@@ -17,13 +21,17 @@ def save_html_files(base, domains, log_callback=None):
         "not_useful": 0
     }
 
+    session = requests.Session()
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; DomainScraper/1.0)"}
+
     for suffix, url in domains:
         msg = f"Fetching HTML from: {url}"
         print(msg)
         if log_callback:
             log_callback(msg)
         try:
-            response = requests.get(url)
+            response = session.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 
             lines = []
@@ -68,6 +76,12 @@ def save_html_files(base, domains, log_callback=None):
                 log_callback(msg)
             stats["saved"] += 1
 
+        except requests.RequestException as e:
+            msg = f"Network error for {url}: {e}"
+            print(msg)
+            if log_callback:
+                log_callback(msg)
+            stats["failed"] += 1
         except Exception as e:
             msg = f"Failed to fetch or save {url}: {e}"
             print(msg)
@@ -75,4 +89,8 @@ def save_html_files(base, domains, log_callback=None):
                 log_callback(msg)
             stats["failed"] += 1
 
+        if delay > 0:
+            time.sleep(delay)
+
+    session.close()
     return stats
