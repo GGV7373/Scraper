@@ -6,6 +6,12 @@ from bs import save_html_files
 from report import write_report
 import threading
 import re
+import os
+try:
+    from PIL import Image, ImageTk
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 
 def is_valid_domain(domain):
@@ -46,14 +52,55 @@ def run_scraper_thread(base, status_label, log_widget, max_workers, tlds):
     messagebox.showinfo("Done", f"Done!\nReport saved to:\n{report_path}")
 
 
+
+
 def start_gui():
     root = tk.Tk()
     root.title("Domain Scraper")
     root.geometry("520x600")
     root.resizable(False, False)
 
+    # Set taskbar icon (Windows) using .ico (absolute path, with error handling)
+    ico_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "logo", "logo.ico"))
+    if os.path.exists(ico_path):
+        try:
+            root.iconbitmap(ico_path)
+            print(f"Taskbar icon set: {ico_path}")
+        except Exception as e:
+            print(f"Could not set .ico icon: {e}")
+    else:
+        print(f".ico file not found at: {ico_path}")
+
+    # Set window icon and display logo (PNG, resized if needed)
+    logo_path = os.path.join(os.path.dirname(__file__), "logo", "log.png")
+    logo_img = None
+    try:
+        if PIL_AVAILABLE:
+            img = Image.open(logo_path)
+            max_width = 128
+            if img.width > max_width:
+                ratio = max_width / img.width
+                new_size = (max_width, int(img.height * ratio))
+                img = img.resize(new_size, Image.ANTIALIAS)
+            logo_img = ImageTk.PhotoImage(img)
+            root.iconphoto(True, logo_img)
+        else:
+            logo_img = tk.PhotoImage(file=logo_path)
+            root.iconphoto(True, logo_img)
+    except Exception as e:
+        print(f"Could not load logo image: {e}")
+        logo_img = None
+
     frame = tk.Frame(root, padx=15, pady=15)
     frame.pack(fill=tk.BOTH, expand=True)
+
+    # Display logo at the top if loaded
+    if logo_img:
+        logo_label = tk.Label(frame, image=logo_img)
+        logo_label.image = logo_img  # Keep a reference!
+        logo_label.pack(pady=(0, 10))
+    elif not PIL_AVAILABLE:
+        print("Pillow (PIL) is not installed. For best results, install it with 'pip install pillow'.")
 
     tk.Label(frame, text="Base domain name (e.g., 'nrk'):", font=("Segoe UI", 11)).pack(anchor="w")
     base_entry = tk.Entry(frame, width=30, font=("Segoe UI", 11))

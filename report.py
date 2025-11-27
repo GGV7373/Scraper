@@ -1,7 +1,4 @@
-
 import os
-import json
-import csv
 from datetime import datetime
 
 def write_report(base, stats, formats=("txt",)):
