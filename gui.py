@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, simpledialog
 from pinger import ping_domains, get_all_tlds
@@ -7,6 +6,8 @@ from report import write_report
 import threading
 import re
 import os
+import sys
+
 try:
     from PIL import Image, ImageTk
     PIL_AVAILABLE = True
@@ -15,8 +16,8 @@ except ImportError:
 
 
 def is_valid_domain(domain):
-    # Simple regex for domain validation
-    return re.match(r'^[a-zA-Z0-9-]{1,63}$', domain) is not None
+    # Allow Norwegian characters å, ø, æ (both lower and upper case)
+    return re.match(r'^[a-zA-Z0-9\-åøæÅØÆ]{1,63}$', domain) is not None
 
 def run_scraper_thread(base, status_label, log_widget, max_workers, tlds):
     base = base.strip()
@@ -51,17 +52,20 @@ def run_scraper_thread(base, status_label, log_widget, max_workers, tlds):
     log_widget.see(tk.END)
     messagebox.showinfo("Done", f"Done!\nReport saved to:\n{report_path}")
 
-
-
+def resource_path(relative_path):
+    # Get absolute path to resource, works for dev and for PyInstaller .exe
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)), relative_path)
 
 def start_gui():
     root = tk.Tk()
     root.title("Domain Scraper")
     root.geometry("520x600")
-    root.resizable(False, False)
+    root.resizable(True, True)
 
     # Set taskbar icon (Windows) using .ico (absolute path, with error handling)
-    ico_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "logo", "logo.ico"))
+    ico_path = resource_path(os.path.join("logo", "logo.ico"))
     if os.path.exists(ico_path):
         try:
             root.iconbitmap(ico_path)
@@ -72,7 +76,7 @@ def start_gui():
         print(f".ico file not found at: {ico_path}")
 
     # Set window icon and display logo (PNG, resized if needed)
-    logo_path = os.path.join(os.path.dirname(__file__), "logo", "log.png")
+    logo_path = resource_path(os.path.join("logo", "log.png"))
     logo_img = None
     try:
         if PIL_AVAILABLE:
@@ -102,7 +106,7 @@ def start_gui():
     elif not PIL_AVAILABLE:
         print("Pillow (PIL) is not installed. For best results, install it with 'pip install pillow'.")
 
-    tk.Label(frame, text="Base domain name (e.g., 'nrk'):", font=("Segoe UI", 11)).pack(anchor="w")
+    tk.Label(frame, text="Base domain name (e.g., 'nrk', 'bbc'):", font=("Segoe UI", 11)).pack(anchor="w")
     base_entry = tk.Entry(frame, width=30, font=("Segoe UI", 11))
     base_entry.pack(fill=tk.X, pady=(0, 10))
 
