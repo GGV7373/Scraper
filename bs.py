@@ -9,10 +9,7 @@ import time
 
 
 async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, retries=3, rate_limit=0.5):
-    msg = f"Fetching HTML from: {url}"
-    print(msg)
-    if log_callback:
-        log_callback(msg)
+    # Only log successful fetches/saves, not every attempt
     attempt = 0
     while attempt < retries:
         try:
@@ -36,16 +33,44 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                     og_desc = soup.find("meta", attrs={"property": "og:description"})
                     if og_desc and og_desc.get("content"):
                         lines.append(f"[og:description] {og_desc['content'].strip()}")
+
+                    # Structured data: JSON-LD (schema.org)
+                    for script in soup.find_all('script', type='application/ld+json'):
+                        try:
+                            import json
+                            data = json.loads(script.string)
+                            lines.append(f"[json-ld] {json.dumps(data, ensure_ascii=False, indent=2)}")
+                        except Exception as e:
+                            pass
+
                     # h1-h6 and p tags
+                    all_text = []
                     for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']):
                         text = tag.get_text(strip=True)
                         if text:
                             lines.append(f"[{tag.name}] {text}")
+                            all_text.append(text)
+
+                    # Keyword extraction (simple)
+                    try:
+                        from collections import Counter
+                        import re
+                        words = re.findall(r'\b\w{4,}\b', ' '.join(all_text).lower())
+                        common = Counter(words).most_common(10)
+                        if common:
+                            lines.append("[keywords] " + ', '.join([w for w, _ in common]))
+                    except Exception:
+                        pass
+
+                    # Sentiment analysis (optional, simple)
+                    try:
+                        from textblob import TextBlob
+                        blob = TextBlob(' '.join(all_text))
+                        sentiment = blob.sentiment
+                        lines.append(f"[sentiment] polarity={sentiment.polarity:.2f}, subjectivity={sentiment.subjectivity:.2f}")
+                    except Exception:
+                        pass
                     if not lines:
-                        msg = f"No important content found for {url}, skipping file."
-                        print(msg)
-                        if log_callback:
-                            log_callback(msg)
                         stats["not_useful"] += 1
                         return
                     filename = f"{base}-{suffix.lstrip('.')}.txt"
@@ -63,10 +88,6 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
         except Exception as e:
             attempt += 1
             if attempt >= retries:
-                msg = f"Failed to fetch or save {url} after {retries} attempts: {e}"
-                print(msg)
-                if log_callback:
-                    log_callback(msg)
                 stats["failed"] += 1
             else:
                 await asyncio.sleep(1)  # Wait before retry
