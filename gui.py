@@ -82,8 +82,15 @@ def start_gui():
     cb_json.pack(side=tk.LEFT, padx=2)
     cb_html.pack(side=tk.LEFT, padx=2)
 
+
     status_label = tk.Label(frame, text="", fg="blue", font=("Segoe UI", 10, "italic"))
-    status_label.pack(anchor="w", pady=(0, 10))
+    status_label.pack(anchor="w", pady=(0, 5))
+
+    # Progress bar
+    from tkinter import ttk
+    progress_var = tk.DoubleVar()
+    progress_bar = ttk.Progressbar(frame, variable=progress_var, maximum=100)
+    progress_bar.pack(fill=tk.X, pady=(0, 10))
 
     log_label = tk.Label(frame, text="App Log:", font=("Segoe UI", 10, "bold"))
     log_label.pack(anchor="w")
@@ -117,7 +124,7 @@ def start_gui():
         # Pass formats to thread via function attribute
         run_scraper_thread.output_formats = formats
         # Run in a background thread
-        threading.Thread(target=run_scraper_thread, args=(base, status_label, log_widget, max_workers, tlds), daemon=True).start()
+        threading.Thread(target=run_scraper_thread, args=(base, status_label, log_widget, max_workers, tlds, progress_var, progress_bar), daemon=True).start()
 
     run_button = tk.Button(frame, text="Run Scraper", command=on_run, font=("Segoe UI", 11, "bold"), bg="#4CAF50", fg="white")
     run_button.pack(pady=(5, 0), fill=tk.X)
@@ -144,7 +151,7 @@ def is_valid_domain(domain):
     # Allow Norwegian characters å, ø, æ (both lower and upper case)
     return re.match(r'^[a-zA-Z0-9\-åøæÅØÆ]{1,63}$', domain) is not None
 
-def run_scraper_thread(base, status_label, log_widget, max_workers, tlds):
+def run_scraper_thread(base, status_label, log_widget, max_workers, tlds, progress_var, progress_bar):
     base = base.strip()
     if not base:
         messagebox.showerror("Input Error", "Please enter a base domain name.")
@@ -156,6 +163,8 @@ def run_scraper_thread(base, status_label, log_widget, max_workers, tlds):
     log_widget.insert(tk.END, f"Starting scan for: {base}\n")
     log_widget.see(tk.END)
     log_widget.update()
+    progress_var.set(0)
+    progress_bar.update()
     reachable_domains = ping_domains(base, suffixes=tlds, timeout=5, max_workers=max_workers)
     if not reachable_domains:
         status_label.config(text="No reachable domain found.")
@@ -165,10 +174,20 @@ def run_scraper_thread(base, status_label, log_widget, max_workers, tlds):
     log_widget.insert(tk.END, f"Found {len(reachable_domains)} reachable domains.\n")
     log_widget.see(tk.END)
     log_widget.update()
+    status_label.config(text="Scraping domains...")
+    total = len(reachable_domains)
+    progress_var.set(0)
+    progress_bar.update()
+    completed = [0]
     def log_callback(msg):
         log_widget.insert(tk.END, msg + "\n")
         log_widget.see(tk.END)
         log_widget.update()
+        # Progress update
+        completed[0] += 1
+        percent = (completed[0] / total) * 100
+        progress_var.set(percent)
+        progress_bar.update()
     # Get selected formats from global variable set in start_gui
     formats = []
     if hasattr(run_scraper_thread, 'output_formats'):
@@ -178,6 +197,8 @@ def run_scraper_thread(base, status_label, log_widget, max_workers, tlds):
     stats = save_html_files(base, reachable_domains, formats=formats, log_callback=log_callback)
     report_path = write_report(base, stats, formats=formats)
     status_label.config(text=f"Done! {stats['saved']} domains saved.")
+    progress_var.set(100)
+    progress_bar.update()
     log_widget.insert(tk.END, f"Done! {stats['saved']} domains saved.\n")
     log_widget.insert(tk.END, f"Report saved to {report_path}\n")
     log_widget.see(tk.END)
