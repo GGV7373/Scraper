@@ -21,10 +21,23 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath(os.path.dirname(__file__)), relative_path)
 
 def start_gui():
+    from tkinter import ttk
     root = tk.Tk()
     root.title("Domain Scraper")
-    root.geometry("520x600")
+    root.geometry("560x770")
     root.resizable(True, True)
+    style = ttk.Style()
+    try:
+        style.theme_use('clam')
+    except Exception:
+        pass
+    style.configure('TFrame', background='#f4f6fa')
+    style.configure('TLabel', background='#f4f6fa', font=("Segoe UI", 11))
+    style.configure('Header.TLabel', font=("Segoe UI", 16, 'bold'), foreground='#2a3b4c', background='#f4f6fa')
+    style.configure('TButton', font=("Segoe UI", 13, 'bold'), padding=10, foreground='white', background='#43a047')
+    style.map('TButton', background=[('active', '#388e3c'), ('!active', '#43a047')], foreground=[('active', 'white'), ('!active', 'white')])
+    style.configure('TCheckbutton', background='#f4f6fa', font=("Segoe UI", 10))
+    style.configure('TEntry', font=("Segoe UI", 11))
 
 
     # Set taskbar icon (Windows) using .ico (absolute path, with error handling)
@@ -58,70 +71,71 @@ def start_gui():
         print(f"Could not load logo image: {e}")
         logo_img = None
 
-    frame = tk.Frame(root, padx=15, pady=15)
+    frame = ttk.Frame(root, padding=20, style='TFrame')
     frame.pack(fill=tk.BOTH, expand=True)
 
     # Tags/elements to scrape - checkboxes
-    tk.Label(frame, text="Tags/elements to scrape (leave all unchecked to scrape all):", font=("Segoe UI", 10)).pack(anchor="w")
+    ttk.Label(frame, text="Tags/elements to scrape (leave all unchecked to scrape all):", font=("Segoe UI", 10)).pack(anchor="w")
     tag_options = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'span', 'a', 'ul', 'li', 'img', 'table']
     tag_vars = {tag: tk.BooleanVar(value=False) for tag in tag_options}
-    tags_frame = tk.Frame(frame)
+    tags_frame = ttk.Frame(frame, style='TFrame')
     tags_frame.pack(anchor="w", pady=(0, 10))
     for i, tag in enumerate(tag_options):
-        cb = tk.Checkbutton(tags_frame, text=tag, variable=tag_vars[tag])
-        cb.grid(row=i//7, column=i%7, sticky="w", padx=2)
+        cb = ttk.Checkbutton(tags_frame, text=tag, variable=tag_vars[tag], style='TCheckbutton')
+        cb.grid(row=i//7, column=i%7, sticky="w", padx=2, pady=2)
 
     # Display logo at the top if loaded
     if logo_img:
-        logo_label = tk.Label(frame, image=logo_img)
+        logo_label = ttk.Label(frame, image=logo_img, style='TLabel')
         logo_label.image = logo_img  # Keep a reference!
         logo_label.pack(pady=(0, 10))
     elif not PIL_AVAILABLE:
         print("Pillow (PIL) is not installed. For best results, install it with 'pip install pillow'.")
 
-    tk.Label(frame, text="Base domain name (e.g., 'nrk', 'bbc'):", font=("Segoe UI", 11)).pack(anchor="w")
-    base_entry = tk.Entry(frame, width=30, font=("Segoe UI", 11))
+    ttk.Label(frame, text="Domain Scraper", style='Header.TLabel').pack(pady=(0, 10))
+
+    ttk.Label(frame, text="Base domain name (e.g., 'nrk', 'bbc'):").pack(anchor="w")
+    base_entry = ttk.Entry(frame, width=30)
     base_entry.pack(fill=tk.X, pady=(0, 10))
 
     # Max workers
-    tk.Label(frame, text="Number of threads (default 20):", font=("Segoe UI", 10)).pack(anchor="w")
-    max_workers_entry = tk.Entry(frame, width=10, font=("Segoe UI", 10))
+    ttk.Label(frame, text="Number of threads (default 20):", font=("Segoe UI", 10)).pack(anchor="w")
+    max_workers_entry = ttk.Entry(frame, width=10)
     max_workers_entry.insert(0, "20")
     max_workers_entry.pack(fill=tk.X, pady=(0, 10))
 
     # TLDs
-    tk.Label(frame, text="TLDs to check (comma-separated, leave blank for all):", font=("Segoe UI", 10)).pack(anchor="w")
-    tlds_entry = tk.Entry(frame, width=50, font=("Segoe UI", 10))
+    ttk.Label(frame, text="TLDs to check (comma-separated, leave blank for all, e.g., '.com', '.org'):", font=("Segoe UI", 10)).pack(anchor="w")
+    tlds_entry = ttk.Entry(frame, width=50)
     tlds_entry.pack(fill=tk.X, pady=(0, 10))
 
     # Output format checkboxes
-    format_frame = tk.Frame(frame)
+    format_frame = ttk.Frame(frame, style='TFrame')
     format_frame.pack(anchor="w", pady=(0, 10))
-    tk.Label(format_frame, text="Report output formats:", font=("Segoe UI", 10)).pack(side=tk.LEFT)
+    ttk.Label(format_frame, text="Report output formats:", font=("Segoe UI", 10)).pack(side=tk.LEFT)
     var_txt = tk.BooleanVar(value=True)
     var_json = tk.BooleanVar(value=False)
     var_html = tk.BooleanVar(value=False)
-    cb_txt = tk.Checkbutton(format_frame, text="TXT", variable=var_txt)
-    cb_json = tk.Checkbutton(format_frame, text="JSON", variable=var_json)
-    cb_html = tk.Checkbutton(format_frame, text="HTML", variable=var_html)
+    cb_txt = ttk.Checkbutton(format_frame, text="TXT", variable=var_txt, style='TCheckbutton')
+    cb_json = ttk.Checkbutton(format_frame, text="JSON", variable=var_json, style='TCheckbutton')
+    cb_html = ttk.Checkbutton(format_frame, text="HTML", variable=var_html, style='TCheckbutton')
     cb_txt.pack(side=tk.LEFT, padx=2)
     cb_json.pack(side=tk.LEFT, padx=2)
     cb_html.pack(side=tk.LEFT, padx=2)
 
 
-    status_label = tk.Label(frame, text="", fg="blue", font=("Segoe UI", 10, "italic"))
+    status_label = ttk.Label(frame, text="", foreground="#2a3b4c", font=("Segoe UI", 10, "italic"), style='TLabel')
     status_label.pack(anchor="w", pady=(0, 5))
 
     # Progress bar
-    from tkinter import ttk
     progress_var = tk.DoubleVar()
-    progress_bar = ttk.Progressbar(frame, variable=progress_var, maximum=100)
+    progress_bar = ttk.Progressbar(frame, variable=progress_var, maximum=100, style='TProgressbar')
     progress_bar.pack(fill=tk.X, pady=(0, 10))
 
-    log_label = tk.Label(frame, text="App Log:", font=("Segoe UI", 10, "bold"))
+    log_label = ttk.Label(frame, text="App Log:", font=("Segoe UI", 10, "bold"), style='TLabel')
     log_label.pack(anchor="w")
 
-    log_widget = scrolledtext.ScrolledText(frame, width=60, height=18, font=("Consolas", 9))
+    log_widget = scrolledtext.ScrolledText(frame, width=60, height=18, font=("Consolas", 10), background="#f8fafc", borderwidth=1, relief="solid")
     log_widget.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
     def on_run():
@@ -156,7 +170,7 @@ def start_gui():
         # Run in a background thread
         threading.Thread(target=run_scraper_thread, args=(base, status_label, log_widget, max_workers, tlds, progress_var, progress_bar), daemon=True).start()
 
-    run_button = tk.Button(frame, text="Run Scraper", command=on_run, font=("Segoe UI", 11, "bold"), bg="#4CAF50", fg="white")
+    run_button = ttk.Button(frame, text="Run Scraper", command=on_run, style='TButton')
     run_button.pack(pady=(5, 0), fill=tk.X)
 
     root.mainloop()
