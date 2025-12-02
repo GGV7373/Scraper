@@ -22,18 +22,6 @@
        ```sh
        pip install -r requirements.txt
        ```
-    - Or install manually:
-       ```sh
-       pip install requests beautifulsoup4
-       ```
-## Requirements File
-
-Create a `requirements.txt` file with the following content:
-
-```
-requests
-beautifulsoup4
-```
 
 2. **Run the app:**
    ```sh
