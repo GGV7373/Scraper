@@ -1,7 +1,4 @@
-
 import os
-import json
-import csv
 from datetime import datetime
 
 def write_report(base, stats, formats=("txt",)):
@@ -45,5 +42,22 @@ def write_report(base, stats, formats=("txt",)):
                 **stats
             }, f, indent=2)
         report_paths["json"] = json_path
+    if "html" in formats:
+        html_path = os.path.join(report_dir, f"{base}-report.html")
+        html_content = f"""
+        <html><head><meta charset='utf-8'><title>Scrape report for '{base}'</title></head><body>
+        <h2>Scrape report for '{base}'</h2>
+        <ul>
+        <li><b>Timestamp:</b> {timestamp}</li>
+        <li><b>Total pinged:</b> {stats['total_pinged']}</li>
+        <li><b>Saved:</b> {stats['saved']}</li>
+        <li><b>Failed to scrape:</b> {stats['failed']}</li>
+        <li><b>Not useful scrape:</b> {stats['not_useful']}</li>
+        </ul>
+        </body></html>
+        """
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        report_paths["html"] = html_path
     # Return the text report path for backward compatibility
     return report_paths.get("txt")

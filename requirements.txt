@@ -1,0 +1,8 @@
+requests
+beautifulsoup4
+aiohttp
+pillow
+textblob
+aiohttp
+numpy
+jsonschema
