@@ -1,4 +1,19 @@
-# Add the missing start_gui function
+import tkinter as tk
+from tkinter import messagebox, scrolledtext, simpledialog
+from pinger import ping_domains, get_all_tlds
+from bs import save_html_files
+from report import write_report
+import threading
+import re
+import os
+import sys
+
+try:
+    from PIL import Image, ImageTk
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
 def resource_path(relative_path):
     # Get absolute path to resource, works for dev and for PyInstaller .exe
     if hasattr(sys, '_MEIPASS'):
@@ -10,6 +25,7 @@ def start_gui():
     root.title("Domain Scraper")
     root.geometry("520x600")
     root.resizable(True, True)
+
 
     # Set taskbar icon (Windows) using .ico (absolute path, with error handling)
     ico_path = resource_path(os.path.join("logo", "logo.ico"))
@@ -44,6 +60,16 @@ def start_gui():
 
     frame = tk.Frame(root, padx=15, pady=15)
     frame.pack(fill=tk.BOTH, expand=True)
+
+    # Tags/elements to scrape - checkboxes
+    tk.Label(frame, text="Tags/elements to scrape (leave all unchecked to scrape all):", font=("Segoe UI", 10)).pack(anchor="w")
+    tag_options = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'span', 'a', 'ul', 'li', 'img', 'table']
+    tag_vars = {tag: tk.BooleanVar(value=False) for tag in tag_options}
+    tags_frame = tk.Frame(frame)
+    tags_frame.pack(anchor="w", pady=(0, 10))
+    for i, tag in enumerate(tag_options):
+        cb = tk.Checkbutton(tags_frame, text=tag, variable=tag_vars[tag])
+        cb.grid(row=i//7, column=i%7, sticky="w", padx=2)
 
     # Display logo at the top if loaded
     if logo_img:
@@ -121,8 +147,12 @@ def start_gui():
             formats.append("json")
         if var_html.get():
             formats.append("html")
-        # Pass formats to thread via function attribute
+        # Pass formats and tags to thread via function attribute
         run_scraper_thread.output_formats = formats
+        # Gather checked tags; if none checked, scrape all
+        checked_tags = [tag for tag, var in tag_vars.items() if var.get()]
+        tags_to_scrape = checked_tags if checked_tags else None
+        run_scraper_thread.tags_to_scrape = tags_to_scrape
         # Run in a background thread
         threading.Thread(target=run_scraper_thread, args=(base, status_label, log_widget, max_workers, tlds, progress_var, progress_bar), daemon=True).start()
 
@@ -188,13 +218,10 @@ def run_scraper_thread(base, status_label, log_widget, max_workers, tlds, progre
         percent = (completed[0] / total) * 100
         progress_var.set(percent)
         progress_bar.update()
-    # Get selected formats from global variable set in start_gui
-    formats = []
-    if hasattr(run_scraper_thread, 'output_formats'):
-        formats = run_scraper_thread.output_formats
-    else:
-        formats = ["txt"]
-    stats = save_html_files(base, reachable_domains, formats=formats, log_callback=log_callback)
+    # Get selected formats and tags from global variable set in start_gui
+    formats = getattr(run_scraper_thread, 'output_formats', ["txt"])
+    tags_to_scrape = getattr(run_scraper_thread, 'tags_to_scrape', None)
+    stats = save_html_files(base, reachable_domains, formats=formats, log_callback=log_callback, tags_to_scrape=tags_to_scrape)
     report_path = write_report(base, stats, formats=formats)
     status_label.config(text=f"Done! {stats['saved']} domains saved.")
     progress_var.set(100)

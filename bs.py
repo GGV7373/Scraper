@@ -8,7 +8,7 @@ import json
 
 
 
-async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, retries=3, rate_limit=0.5):
+async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, tags_to_scrape=None, retries=3, rate_limit=0.5):
     # Only log successful fetches/saves, not every attempt
     attempt = 0
     while attempt < retries:
@@ -40,7 +40,8 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                             pass
                     all_text = []
                     h_tags = []
-                    for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']):
+                    tags = tags_to_scrape if tags_to_scrape else ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p']
+                    for tag in soup.find_all(tags):
                         t = tag.get_text(strip=True)
                         if t:
                             h_tags.append({"tag": tag.name, "text": t})
@@ -138,7 +139,7 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                 await asyncio.sleep(1)  # Wait before retry
         await asyncio.sleep(rate_limit)
 
-async def save_html_files_async(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3):
+async def save_html_files_async(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3, tags_to_scrape=None):
     """
     Async version: For each (suffix, url) in domains, fetch HTML and save important elements to base/base-suffix.txt.
     Uses aiohttp for efficiency. Supports rate limiting and retries.
@@ -155,10 +156,10 @@ async def save_html_files_async(base, domains, formats=None, log_callback=None, 
     headers = {"User-Agent": "Mozilla/5.0 (compatible; DomainScraper/1.0)"}
     sem = asyncio.Semaphore(max_concurrent)
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, retries, rate_limit) for suffix, url in domains]
+        tasks = [fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, tags_to_scrape, retries, rate_limit) for suffix, url in domains]
         await asyncio.gather(*tasks)
     return stats
 
 # Synchronous wrapper for GUI compatibility
-def save_html_files(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3):
-    return asyncio.run(save_html_files_async(base, domains, formats, log_callback, max_concurrent, rate_limit, retries))
+def save_html_files(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3, tags_to_scrape=None):
+    return asyncio.run(save_html_files_async(base, domains, formats, log_callback, max_concurrent, rate_limit, retries, tags_to_scrape))
