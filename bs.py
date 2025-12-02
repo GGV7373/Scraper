@@ -21,7 +21,8 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                     soup = BeautifulSoup(text, "html.parser")
 
                     # Prepare data for all formats
-                    folder = base
+                    folder = fetch_and_save.output_dir if hasattr(fetch_and_save, 'output_dir') and fetch_and_save.output_dir else base
+                    folder = os.path.join(folder, base)
                     os.makedirs(folder, exist_ok=True)
                     base_filename = f"{base}-{suffix.lstrip('.')}"
 
@@ -139,7 +140,7 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                 await asyncio.sleep(1)  # Wait before retry
         await asyncio.sleep(rate_limit)
 
-async def save_html_files_async(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3, tags_to_scrape=None):
+async def save_html_files_async(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3, tags_to_scrape=None, output_dir=None):
     """
     Async version: For each (suffix, url) in domains, fetch HTML and save important elements to base/base-suffix.txt.
     Uses aiohttp for efficiency. Supports rate limiting and retries.
@@ -155,11 +156,15 @@ async def save_html_files_async(base, domains, formats=None, log_callback=None, 
     }
     headers = {"User-Agent": "Mozilla/5.0 (compatible; DomainScraper/1.0)"}
     sem = asyncio.Semaphore(max_concurrent)
+    if output_dir:
+        fetch_and_save.output_dir = output_dir
+    else:
+        fetch_and_save.output_dir = None
     async with aiohttp.ClientSession() as session:
         tasks = [fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, tags_to_scrape, retries, rate_limit) for suffix, url in domains]
         await asyncio.gather(*tasks)
     return stats
 
 # Synchronous wrapper for GUI compatibility
-def save_html_files(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3, tags_to_scrape=None):
-    return asyncio.run(save_html_files_async(base, domains, formats, log_callback, max_concurrent, rate_limit, retries, tags_to_scrape))
+def save_html_files(base, domains, formats=None, log_callback=None, max_concurrent=10, rate_limit=0.5, retries=3, tags_to_scrape=None, output_dir=None):
+    return asyncio.run(save_html_files_async(base, domains, formats, log_callback, max_concurrent, rate_limit, retries, tags_to_scrape, output_dir))
