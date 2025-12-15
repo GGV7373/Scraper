@@ -1,9 +1,9 @@
 
-# skraper
+# Skraper
 
 ## Overview
 
-**skraper** is a graphical Python application for discovering and scraping the main content from websites based on a base domain name (e.g., `nrk`). It automatically checks which top-level domains (TLDs) are active for the base (like `.no`, `.com`, etc.), pings them in parallel, and scrapes the most important content from each reachable site.
+**Skraper** is a graphical Python application for discovering and scraping the main content from websites based on a base domain name (e.g., `nrk`). It automatically checks which top-level domains (TLDs) are active for the base (like `.no`, `.com`, etc.), pings them in parallel, and scrapes the most important content from each reachable site.
 
 ## Features
 
@@ -14,25 +14,19 @@
 - **Reporting:** Generates a summary report after scraping, including statistics on pinged, saved, failed, and non-useful scrapes. Reports can be saved as `.txt`, `.csv`, and `.json`.
 - **Per-domain Output:** Saves results for each domain in a separate `.txt` file inside a folder named after the base.
 
-## Usage
 
-
-1. **Install requirements:**
-    - Recommended: use a `requirements.txt` file for easy installation:
-       ```sh
-       pip install -r requirements.txt
-       ```
-    - Or install manually:
-       ```sh
-       pip install requests beautifulsoup4
-       ```
 ## Requirements File
 
-Create a `requirements.txt` file with the following content:
+The `requirements.txt` is the following following content:
 
 ```
 requests
 beautifulsoup4
+aiohttp
+pillow
+textblob
+numpy
+jsonschema
 ```
 
 2. **Run the app:**
