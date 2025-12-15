@@ -19,6 +19,7 @@ def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath(os.path.dirname(__file__)), relative_path)
+
 def start_gui():
     import tkinter.filedialog as fd
     # Root window
@@ -51,7 +52,7 @@ def start_gui():
 
     # Set window icon/logo
     logo_img = None
-    logo_path = resource_path(os.path.join("logo", "log.png"))
+    logo_path = resource_path(os.path.join("logo", "logo.png"))
     try:
         if PIL_AVAILABLE:
             img = Image.open(logo_path)
@@ -138,10 +139,22 @@ def start_gui():
     progress_bar = ttk.Progressbar(frame, variable=progress_var, maximum=100, style='TProgressbar')
     progress_bar.pack(fill=tk.X, pady=(0, 10))
 
-    # Log
-    ttk.Label(frame, text="App Log:", font=("Segoe UI", 10, "bold"), style='TLabel').pack(anchor="w")
+    # Log (collapsible)
+    log_visible = tk.BooleanVar(value=False)
+    
+    def toggle_log():
+        if log_visible.get():
+            log_widget.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        else:
+            log_widget.pack_forget()
+    
+    log_header_frame = ttk.Frame(frame, style='TFrame')
+    log_header_frame.pack(fill=tk.X, anchor="w")
+    log_toggle_btn = ttk.Checkbutton(log_header_frame, text="App Log", variable=log_visible, command=toggle_log, style='TCheckbutton')
+    log_toggle_btn.pack(side=tk.LEFT)
+    
     log_widget = scrolledtext.ScrolledText(frame, width=60, height=18, font=("Consolas", 10), background="#f8fafc", borderwidth=1, relief="solid")
-    log_widget.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+    # Initially hidden
 
     # Run handler
     def on_run():

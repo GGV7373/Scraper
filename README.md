@@ -17,7 +17,7 @@
 
 ## Requirements File
 
-The `requirements.txt` is the following following content:
+The `requirements.txt` has the following content:
 
 ```
 requests

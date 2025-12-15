@@ -1,7 +1,9 @@
 import os
+import csv
+import json
 from datetime import datetime
 
-def write_report(base, stats, formats=("txt",)):
+def write_report(base, stats, formats=("txt","csv","json","html")):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     report_lines = [
         f"Scrape report for '{base}':",
