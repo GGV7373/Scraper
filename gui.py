@@ -25,7 +25,7 @@ def start_gui():
     # Root window
     root = tk.Tk()
     root.title("Domain Scraper")
-    root.geometry("560x770")
+    root.geometry("560x620")
     root.resizable(True, True)
 
     # Styling
