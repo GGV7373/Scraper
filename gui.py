@@ -4,9 +4,12 @@ import os
 import re
 import sys
 import threading
+import asyncio
+from pathlib import Path
 from pinger import ping_domains, get_all_tlds
 from bs import save_html_files
 from report import write_report
+from image_scraper import scrape_images
 
 try:
     from PIL import Image, ImageTk
@@ -156,6 +159,39 @@ def start_gui():
     log_widget = scrolledtext.ScrolledText(frame, width=60, height=18, font=("Consolas", 10), background="#f8fafc", borderwidth=1, relief="solid")
     # Initially hidden
 
+    def on_run_images():
+        urls_raw = simpledialog.askstring("Image URLs", "Enter image page URLs (comma or newline separated):")
+        if not urls_raw:
+            return
+        urls = [u.strip() for u in re.split(r"[\s,]+", urls_raw) if u.strip().startswith(("http://", "https://"))]
+        if not urls:
+            messagebox.showerror("Input Error", "Please enter at least one valid http/https URL.")
+            return
+        output_root = Path(output_dir_var.get()) / "output" / "images"
+        status_label.config(text="Scraping images...")
+        progress_var.set(0)
+        progress_bar.update()
+        log_widget.insert(tk.END, f"Image scrape starting for {len(urls)} URL(s)\n")
+        log_widget.see(tk.END)
+
+        def worker():
+            try:
+                total_new = asyncio.run(scrape_images(urls, output_root, concurrency=8, timeout=15))
+            except Exception as e:
+                log_widget.insert(tk.END, f"Image scrape failed: {e}\n")
+                log_widget.see(tk.END)
+                status_label.config(text="Image scrape failed")
+                messagebox.showerror("Error", f"Image scrape failed: {e}")
+                return
+            status_label.config(text=f"Image scrape done: {total_new} new images")
+            progress_var.set(100)
+            progress_bar.update()
+            log_widget.insert(tk.END, f"Image scrape done: {total_new} new images\nSaved under: {output_root}\n")
+            log_widget.see(tk.END)
+            messagebox.showinfo("Done", f"Downloaded {total_new} new images.\nSaved under:\n{output_root}")
+
+        threading.Thread(target=worker, daemon=True).start()
+
     # Run handler
     def on_run():
         log_widget.delete(1.0, tk.END)
@@ -194,6 +230,7 @@ def start_gui():
         threading.Thread(target=run_scraper_thread, args=(base, status_label, log_widget, max_workers, tlds, progress_var, progress_bar), daemon=True).start()
 
     ttk.Button(frame, text="Run Scraper", command=on_run, style='TButton').pack(pady=(5, 0), fill=tk.X)
+    ttk.Button(frame, text="Image-only: Scrape URLs", command=on_run_images, style='TButton').pack(pady=(6, 0), fill=tk.X)
     root.mainloop()
 
 
