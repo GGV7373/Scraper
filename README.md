@@ -1,87 +1,170 @@
+# 🕷️ Web Scraper with Video & Image Support
 
-# Skraper
+A comprehensive web scraper that extracts text content, images, and videos from websites with advanced timeout handling and **full website crawling** capabilities.
 
-## Overview
+## ✨ Features
 
-**Skraper** is a graphical Python application for discovering and scraping the main content from websites based on a base domain name (e.g., `nrk`). It automatically checks which top-level domains (TLDs) are active for the base (like `.no`, `.com`, etc.), pings them in parallel, and scrapes the most important content from each reachable site.
+- **🌐 Web Content Scraping**: Extract text, metadata, and structured content
+- **🖼️ Image Scraping**: Download and deduplicate images from web pages
+- **🎥 Video Scraping**: Extract and download videos from multiple sources
+- **🕷️ Full Website Crawling**: Crawl entire websites to extract ALL content
+- **🛡️ Anti-Freeze Protection**: Advanced timeout and error handling
+- **🖥️ User-Friendly GUI**: Easy-to-use graphical interface
+- **📊 Multiple Output Formats**: TXT, JSON, and HTML reports
+- **⚡ Concurrent Processing**: Fast multi-threaded operations
 
-## Features
+## 🚀 New: Full Website Crawling
 
-- **Automatic TLD Discovery:** Checks all known TLDs for a given base domain, or lets you specify a custom list.
-- **Parallel Pinging:** Fast domain reachability checks using configurable threading (choose number of threads in GUI).
-- **Content Extraction:** Extracts and saves only important elements: `<title>`, meta descriptions, Open Graph descriptions, and all `<h1>`-`<h6>`, `<p>` tags.
-- **Graphical Interface:** Simple GUI for input, thread count, TLD selection, and progress/log viewing.
-- **Reporting:** Generates a summary report after scraping, including statistics on pinged, saved, failed, and non-useful scrapes. Reports can be saved as `.txt`, `.csv`, and `.json`.
-- **Per-domain Output:** Saves results for each domain in a separate `.txt` file inside a folder named after the base.
-- **Image-only scraper:** Optional CLI tool to pull images from specific URLs, deduplicate by content hash, and sort into per-domain folders under `output/images`.
+The scraper now includes **comprehensive website crawling** that:
+- **Follows all internal links** on the same domain/subdomain
+- **Extracts every image and video** from all discovered pages
+- **Saves complete HTML** of each page with metadata
+- **Avoids duplicates** and infinite loops
+- **Respects robots.txt** and implements rate limiting
+- **Generates detailed reports** of the entire crawl
 
+### What Gets Extracted During Full Crawl:
+- 🌐 **All HTML pages** on the website
+- 🖼️ **Every image downloaded** (jpg, png, gif, webp, etc.) with deduplication
+- 🎥 **All videos** (mp4, webm, embedded videos)
+- 🔗 **Complete site structure** and navigation
+- 📊 **Metadata and analytics** for each page
 
-## Requirements File
+## 🎯 Video Content Detection
 
-The `requirements.txt` has the following content:
+The scraper can detect and extract videos from:
+- `<video>` HTML elements with source files
+- Direct video file links (mp4, webm, avi, mov, etc.)
+- Embedded videos (YouTube, Vimeo, Dailymotion, Twitch)
+- Video metadata including platform detection
 
-```
-requests
-beautifulsoup4
-aiohttp
-pillow
-textblob
-numpy
-jsonschema
-```
+## 🚀 Quick Start
 
-Quick install:
-
-```sh
-pip install -r requirements.txt
-```
-
-2. **Run the app:**
-   ```sh
-   python main.py
-   ```
-
-3. **In the GUI:**
-   - Enter a base domain name (e.g., `nrk`).
-   - (Optional) Set the number of threads (default: 20, range: 1-100).
-   - (Optional) Enter a comma-separated list of TLDs to check (e.g., `.no,.com,.org`). Leave blank to check all known TLDs.
-   - Click **Run Scraper**.
-   - View progress and logs in the app.
-   - Results and a scrape report will be saved in a folder named after your base domain.
-
-## Output
-
-- For each reachable domain, a file like `nrk-no.txt` will be created in the `nrk` folder.
-- A summary report (e.g., `nrk-report.txt`, `nrk-report.csv`, `nrk-report.json`) will be saved in the same folder.
-- For image-only scraping, all images are saved under `output/images/<domain>/` with a persistent `.hash_index.json` to avoid duplicates across runs.
-
-## Image-only scraper (CLI)
-
-Use this if you only want pictures from specific pages.
-
-```sh
-python image_scraper.py https://example.com https://example.com/gallery
-# or from a file
-python image_scraper.py --url-file urls.txt --output output/images --concurrency 8
-# include subdomains and same-domain links (recursive crawl up to 100 pages per seed)
-python image_scraper.py https://example.com --recursive --max-pages 100
+### 1. Setup (First Time)
+```bash
+# Linux/macOS
+chmod +x setup.sh
+./setup.sh
 ```
 
-- Images are grouped by domain and path under the chosen output folder (default `output/images`).
-  - Example: `https://example.com/meat/special` → images saved under `output/images/example.com/meat/special/`
-  - Example: `https://example.com/` → images saved under `output/images/example.com/index/`
-- Deduplication uses SHA-256 content hashes stored in `.hash_index.json` in the output root, so reruns skip already downloaded images.
-- Only `http/https` URLs are accepted. Provide one URL per line when using `--url-file`.
-- `--recursive` follows links on the same domain and its subdomains; limit crawl breadth/depth with `--max-pages` (per seed URL).
+```batch
+# Windows
+setup.bat
+```
 
-## Example
+### 2. Launch Application
+```bash
+# Linux/macOS
+./launch.sh
+```
 
-If you enter `nrk` as the base, the app will try domains like `nrk.no`, `nrk.com`, etc., and save the results for each reachable site. You can limit the TLDs or increase threads for faster scanning.
+```batch
+# Windows
+launch.bat
+```
 
----
+## 🔧 Component Architecture
 
-**Notes:**
-- The app uses a public TLD list and may take some time depending on your network and the number of TLDs.
-- Only non-empty, meaningful content is saved for each domain.
-- Reports are saved in multiple formats for convenience.
+The scraper consists of linked components:
 
+- **`main.py`** - Entry point, launches GUI
+- **`gui.py`** - Main interface with image/video options
+- **`bs.py`** - Core web scraper with enhanced content extraction
+- **`video_scraper.py`** - Dedicated video detection and downloading
+- **`image_scraper.py`** - Image extraction and deduplication
+- **`pinger.py`** - Domain discovery and validation
+- **`report.py`** - Results formatting and export
+
+## 💾 Output Structure
+
+```
+your_project/
+├── domain_name/           # Scraped content
+│   ├── domain_name-com.txt
+│   ├── domain_name-com.json
+│   └── domain_name-com.html
+├── images/               # Downloaded images
+│   └── domain.com/
+├── videos/              # Downloaded videos
+│   └── domain.com/
+└── report.txt           # Summary report
+```
+
+## ⚙️ Configuration Options
+
+### GUI Settings
+- **Domain/URL Input**: Enter domain name or full URL
+- **Thread Count**: Number of concurrent workers (1-100)
+- **TLDs**: Target top-level domains (com, org, net, etc.)
+- **Rate Limiting**: Delay between requests (seconds)
+- **Content Tags**: Select specific HTML elements to scrape
+- **Output Formats**: Choose TXT, JSON, and/or HTML
+- **Media Options**: Enable image and/or video scraping
+
+### Anti-Freeze Features
+- **Request Timeouts**: 15s for content, 30s for videos
+- **Connection Limits**: Prevents resource exhaustion
+- **Exponential Backoff**: Smart retry mechanism
+- **Semaphore Control**: Limits concurrent operations
+- **Error Recovery**: Graceful failure handling
+
+## 📋 Requirements
+
+- Python 3.7+
+- Dependencies: `aiohttp`, `beautifulsoup4`, `requests`, `pillow`, `textblob`
+
+## 🔍 Usage Examples
+
+### Basic Web Scraping
+1. Enter domain name (e.g., "example")
+2. Select output formats
+3. Click "Run Scraper"
+
+### Full Website Crawling (NEW!)
+1. Check "Crawl entire website" option
+2. Set max pages limit (e.g., 50)
+3. Enter URL or domain name
+4. All pages, images, and videos will be extracted automatically
+
+### Video Scraping
+1. Check "Include video scraping"
+2. Enter URL or domain
+3. Videos will be downloaded to `videos/` folder
+
+### Advanced Options
+- Use custom TLDs: "com,org,net"
+- Set rate limiting: "1.0" (1 second between requests)
+- Select specific tags: Check h1, h2, p, div boxes
+
+## 💻 Command Line Interface
+
+For advanced users, crawl websites directly from command line:
+
+```bash
+# Crawl a website with default settings (100 pages max)
+python crawl_website.py https://example.com
+
+# Crawl with custom settings
+python crawl_website.py https://example.com --output my_crawl --max-pages 200 --verbose
+
+# Get help
+python crawl_website.py --help
+```
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+- **Import errors**: Run setup script to install dependencies
+- **Freezing**: The new version has timeout protection
+- **No videos found**: Some sites may block video extraction
+- **Large files**: Video downloads limited to 100MB by default
+
+### Manual Dependency Installation
+```bash
+source .venv/bin/activate
+pip install aiohttp beautifulsoup4 requests pillow textblob
+```
+
+## 📜 License
+
+Licensed under the original project license terms.

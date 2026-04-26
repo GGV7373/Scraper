@@ -7,6 +7,7 @@ __pycache__/
 *.so
 
 outputs/*
+output/*
 
 # Distribution / packaging
 .Python
@@ -32,6 +33,28 @@ tlds_cache.txt
 pip-wheel-metadata/
 log
 .vscode/
+
+# Docker and containerization
+.dockerignore
+docker-compose.override.yml
+
+# X11 and GUI
+.Xauth*
+.X11-unix/
+/tmp/.docker.xauth
+
+# Enhanced scraper specific
+chromedriver.log
+geckodriver.log
+debug.log
+scraper.log
+
+# Configuration files (keep examples)
+config/local_*.json
+config/production_*.json
+.env.local
+.env.*.local
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -179,8 +202,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Cursor  
-#  Cursor is an AI-powered code editor.`.cursorignore` specifies files/directories to 
+# Cursor
+#  Cursor is an AI-powered code editor.`.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
