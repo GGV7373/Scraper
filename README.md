@@ -18,10 +18,9 @@
 
 
 1. **Install requirements:**
-    - Recommended: use a `requirements.txt` file for easy installation:
-       ```sh
-       pip install -r requirements.txt
-       ```
+   ```sh
+   pip install -r requirements.txt
+   ```
 
 2. **Run the app:**
    ```sh
