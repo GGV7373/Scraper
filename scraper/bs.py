@@ -228,52 +228,23 @@ class EnhancedContentExtractor:
 
         return content
 
-class EnhancedScraper:
-    """Enhanced scraper with timeout management and error handling"""
-
-    def __init__(self, timeout: int = 15, max_retries: int = 3):
-        self.timeout = timeout
-        self.max_retries = max_retries
-        self.session = None
-
-    async def fetch_enhanced(self, url: str, use_js: bool = False) -> Optional[str]:
-        """Fetch content with enhanced error handling"""
-        headers = {"User-Agent": random.choice(USER_AGENTS)}
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                timeout = aiohttp.ClientTimeout(total=self.timeout)
-                async with session.get(url, headers=headers, timeout=timeout) as response:
-                    if response.status == 200:
-                        return await response.text()
-                    else:
-                        return None
-        except asyncio.TimeoutError:
-            return None
-        except Exception:
-            return None
-
-async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, formats, tags_to_scrape=None, retries=3, rate_limit=0.5):
+async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, formats, tags_to_scrape=None, retries=3, rate_limit=0.5, output_dir=None):
     """Enhanced fetch and save function with video support and timeout handling"""
     attempt = 0
-    scraper = EnhancedScraper(timeout=15, max_retries=retries)
 
     while attempt < retries:
         try:
             async with sem:
-                # Use enhanced scraper for fetching with timeout
-                text = await scraper.fetch_enhanced(url, use_js=False)
-                if not text:
-                    raise Exception("Failed to fetch content or empty response")
+                headers = {"User-Agent": random.choice(USER_AGENTS)}
+                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                    if response.status != 200:
+                        raise Exception(f"HTTP {response.status}")
+                    text = await response.text()
 
                 soup = BeautifulSoup(text, "html.parser")
 
                 # Prepare folder structure
-                folder = getattr(fetch_and_save, 'output_dir', base)
-                if folder and folder != base:
-                    folder = os.path.join(folder, base)
-                else:
-                    folder = base
+                folder = os.path.join(output_dir or "", base)
                 os.makedirs(folder, exist_ok=True)
                 base_filename = f"{base}-{suffix.lstrip('.')}"
 
@@ -309,6 +280,8 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, f
                         }
                 except Exception:
                     pass
+
+                saved = []  # one log line per file written
 
                 # Save TXT (enhanced summary)
                 if 'txt' in formats:
@@ -356,12 +329,7 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, f
                         txt_path = os.path.join(folder, base_filename + ".txt")
                         with open(txt_path, "w", encoding="utf-8") as f:
                             f.write("\n".join(lines))
-                        msg = f"Saved enhanced TXT to {txt_path}"
-                        if log_callback:
-                            log_callback(msg)
-                        stats["saved"] += 1
-                    else:
-                        stats["not_useful"] += 1
+                        saved.append(f"Saved enhanced TXT to {txt_path}")
 
                 # Save JSON (comprehensive structured data)
                 if 'json' in formats:
@@ -382,10 +350,7 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, f
                     json_path = os.path.join(folder, base_filename + ".json")
                     with open(json_path, "w", encoding="utf-8") as f:
                         json.dump(data, f, ensure_ascii=False, indent=2)
-                    msg = f"Saved enhanced JSON to {json_path}"
-                    if log_callback:
-                        log_callback(msg)
-                    stats["saved"] += 1
+                    saved.append(f"Saved enhanced JSON to {json_path}")
 
                 # Save HTML (raw HTML with metadata comments)
                 if 'html' in formats:
@@ -398,11 +363,17 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, f
                     html_path = os.path.join(folder, base_filename + ".html")
                     with open(html_path, "w", encoding="utf-8") as f:
                         f.write(html_content)
-                    msg = f"Saved enhanced HTML to {html_path}"
-                    if log_callback:
-                        log_callback(msg)
-                    stats["saved"] += 1
+                    saved.append(f"Saved enhanced HTML to {html_path}")
 
+                # Count each domain once and log once, so the GUI progress bar counts domains
+                if saved:
+                    stats["saved"] += 1
+                    msg = "\n".join(saved)
+                else:
+                    stats["not_useful"] += 1
+                    msg = f"Nothing useful on {url}"
+                if log_callback:
+                    log_callback(msg)
                 return
 
         except asyncio.TimeoutError:
@@ -440,11 +411,6 @@ async def save_html_files_async(base, domains, formats=None, log_callback=None, 
         "not_useful": 0
     }
 
-    if output_dir:
-        fetch_and_save.output_dir = output_dir
-    else:
-        fetch_and_save.output_dir = None
-
     # Create semaphore to limit concurrent requests and prevent overwhelming
     sem = asyncio.Semaphore(max_concurrent)
 
@@ -458,7 +424,7 @@ async def save_html_files_async(base, domains, formats=None, log_callback=None, 
 
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = [
-            fetch_and_save(session, sem, base, suffix, url, log_callback, stats, formats, tags_to_scrape, retries, rate_limit)
+            fetch_and_save(session, sem, base, suffix, url, log_callback, stats, formats, tags_to_scrape, retries, rate_limit, output_dir)
             for suffix, url in domains
         ]
         # Use asyncio.gather with return_exceptions=True to handle failures gracefully

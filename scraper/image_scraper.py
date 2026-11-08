@@ -215,9 +215,9 @@ async def scrape_images(
     output_root: Path,
     concurrency: int,
     timeout: int,
-    recursive: bool,
-    max_pages: int,
-) -> None:
+    recursive: bool = False,
+    max_pages: int = 1,
+) -> int:
     output_root.mkdir(parents=True, exist_ok=True)
     index_path = output_root / ".hash_index.json"
     hash_index = load_hash_index(index_path)

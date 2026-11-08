@@ -242,7 +242,15 @@ async def download_video(
             async with session.get(video_url, headers=DEFAULT_HEADERS, timeout=timeout) as resp:
                 resp.raise_for_status()
                 content_type = resp.headers.get("Content-Type", "")
-                data = await resp.read()
+                # Enforce the size limit while reading: HEAD may lie or omit Content-Length
+                limit = max_size_mb * 1024 * 1024
+                data = bytearray()
+                async for chunk in resp.content.iter_chunked(64 * 1024):
+                    data.extend(chunk)
+                    if len(data) > limit:
+                        print(f"Skipping {video_url}: larger than {max_size_mb}MB")
+                        return False
+                data = bytes(data)
 
         except Exception as e:
             print(f"Failed to download {video_url}: {e}")

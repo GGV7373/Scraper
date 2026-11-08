@@ -1,36 +1,36 @@
-# 🕷️ Web Scraper with Video & Image Support
+# Web Scraper with Video & Image Support
 
 A comprehensive web scraper that extracts text content, images, and videos from websites with advanced timeout handling and **full website crawling** capabilities.
 
-## ✨ Features
+## Features
 
-- **🌐 Web Content Scraping**: Extract text, metadata, and structured content
-- **🖼️ Image Scraping**: Download and deduplicate images from web pages
-- **🎥 Video Scraping**: Extract and download videos from multiple sources
-- **🕷️ Full Website Crawling**: Crawl entire websites to extract ALL content
-- **🛡️ Anti-Freeze Protection**: Advanced timeout and error handling
-- **🖥️ User-Friendly GUI**: Easy-to-use graphical interface
-- **📊 Multiple Output Formats**: TXT, JSON, and HTML reports
-- **⚡ Concurrent Processing**: Fast multi-threaded operations
+- **Web Content Scraping**: Extract text, metadata, and structured content
+- **Image Scraping**: Download and deduplicate images from web pages
+- **Video Scraping**: Extract and download videos from multiple sources
+- **Full Website Crawling**: Crawl entire websites to extract ALL content
+- **Anti-Freeze Protection**: Advanced timeout and error handling
+- **User-Friendly GUI**: Easy-to-use graphical interface
+- **Multiple Output Formats**: TXT, JSON, and HTML reports
+- **Concurrent Processing**: Fast multi-threaded operations
 
-## 🚀 New: Full Website Crawling
+## Full Website Crawling
 
-The scraper now includes **comprehensive website crawling** that:
+The full crawl:
 - **Follows all internal links** on the same domain/subdomain
-- **Extracts every image and video** from all discovered pages
+- **Downloads every image** and lists every video on all discovered pages
 - **Saves complete HTML** of each page with metadata
 - **Avoids duplicates** and infinite loops
-- **Respects robots.txt** and implements rate limiting
+- **Respects robots.txt** and waits 1 second between pages
 - **Generates detailed reports** of the entire crawl
 
 ### What Gets Extracted During Full Crawl:
-- 🌐 **All HTML pages** on the website
-- 🖼️ **Every image downloaded** (jpg, png, gif, webp, etc.) with deduplication
-- 🎥 **All videos** (mp4, webm, embedded videos)
-- 🔗 **Complete site structure** and navigation
-- 📊 **Metadata and analytics** for each page
+- **All HTML pages** on the website
+- **Every image downloaded** (jpg, png, gif, webp, etc.) with deduplication
+- **All videos** (mp4, webm, embedded videos), listed in each page's metadata; tick "Include video scraping" to download them too
+- **Complete site structure** and navigation
+- **Metadata and analytics** for each page
 
-## 🎯 Video Content Detection
+## Video Content Detection
 
 The scraper can detect and extract videos from:
 - `<video>` HTML elements with source files
@@ -38,7 +38,7 @@ The scraper can detect and extract videos from:
 - Embedded videos (YouTube, Vimeo, Dailymotion, Twitch)
 - Video metadata including platform detection
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Setup (First Time)
 ```bash
@@ -63,34 +63,41 @@ setup.bat
 launch.bat
 ```
 
-## 🔧 Component Architecture
-
-The scraper consists of linked components:
-
-- **`main.py`** - Entry point, launches GUI
-- **`gui.py`** - Main interface with image/video options
-- **`bs.py`** - Core web scraper with enhanced content extraction
-- **`video_scraper.py`** - Dedicated video detection and downloading
-- **`image_scraper.py`** - Image extraction and deduplication
-- **`pinger.py`** - Domain discovery and validation
-- **`report.py`** - Results formatting and export
-
-## 💾 Output Structure
+## Project Layout
 
 ```
-your_project/
-├── domain_name/           # Scraped content
+main.py               # Entry point, launches the GUI
+crawl_website.py      # Command line crawler
+setup.sh / setup.bat  # First-time setup
+launch.sh             # Launcher (created by setup)
+logo/                 # App icons
+scraper/              # The application code
+├── gui.py            # Main interface with image/video options
+├── bs.py             # Core web scraper with content extraction
+├── website_crawler.py  # Full website crawler
+├── image_scraper.py  # Image extraction and deduplication
+├── video_scraper.py  # Video detection and downloading
+├── pinger.py         # Domain discovery and validation
+└── report.py         # Results formatting and export
+tests/                # Offline tests (python -m unittest)
+```
+
+## Output Structure
+
+```
+output_folder/
+├── domain_name/           # Scraped content and report
 │   ├── domain_name-com.txt
 │   ├── domain_name-com.json
-│   └── domain_name-com.html
-├── images/               # Downloaded images
+│   ├── domain_name-com.html
+│   └── domain_name-report.txt
+├── images/                # Downloaded images
 │   └── domain.com/
-├── videos/              # Downloaded videos
-│   └── domain.com/
-└── report.txt           # Summary report
+└── videos/                # Downloaded videos
+    └── domain.com/
 ```
 
-## ⚙️ Configuration Options
+## Configuration Options
 
 ### GUI Settings
 - **Domain/URL Input**: Enter domain name or full URL
@@ -108,23 +115,23 @@ your_project/
 - **Semaphore Control**: Limits concurrent operations
 - **Error Recovery**: Graceful failure handling
 
-## 📋 Requirements
+## Requirements
 
 - Python 3.7+
 - Dependencies: `aiohttp`, `beautifulsoup4`, `requests`, `pillow`, `textblob`
 
-## 🔍 Usage Examples
+## Usage Examples
 
 ### Basic Web Scraping
 1. Enter domain name (e.g., "example")
 2. Select output formats
 3. Click "Run Scraper"
 
-### Full Website Crawling (NEW!)
+### Full Website Crawling
 1. Check "Crawl entire website" option
 2. Set max pages limit (e.g., 50)
 3. Enter URL or domain name
-4. All pages, images, and videos will be extracted automatically
+4. All pages and images are saved; videos are listed (and downloaded if video scraping is on)
 
 ### Video Scraping
 1. Check "Include video scraping"
@@ -136,7 +143,7 @@ your_project/
 - Set rate limiting: "1.0" (1 second between requests)
 - Select specific tags: Check h1, h2, p, div boxes
 
-## 💻 Command Line Interface
+## Command Line Interface
 
 For advanced users, crawl websites directly from command line:
 
@@ -151,7 +158,14 @@ python crawl_website.py https://example.com --output my_crawl --max-pages 200 --
 python crawl_website.py --help
 ```
 
-## 🛠️ Troubleshooting
+The image and video scrapers also run on their own:
+
+```bash
+python -m scraper.image_scraper https://example.com --recursive --max-pages 20
+python -m scraper.video_scraper https://example.com
+```
+
+## Troubleshooting
 
 ### Common Issues
 - **Import errors**: Run setup script to install dependencies
@@ -162,9 +176,15 @@ python crawl_website.py --help
 ### Manual Dependency Installation
 ```bash
 source .venv/bin/activate
-pip install aiohttp beautifulsoup4 requests pillow textblob
+pip install -r requirements.txt
 ```
 
-## 📜 License
+## Running Tests
+
+```bash
+python -m unittest discover tests
+```
+
+## License
 
 Licensed under the original project license terms.

@@ -9,9 +9,12 @@ from pathlib import Path
 from typing import Set, Dict, List, Optional
 import hashlib
 import re
+from urllib.robotparser import RobotFileParser
 
 class WebsiteCrawler:
     """Comprehensive website crawler that extracts and downloads all content"""
+
+    USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
 
     def __init__(self, start_url: str, output_dir: str = "output", max_pages: int = 100):
         self.start_url = start_url
@@ -34,6 +37,7 @@ class WebsiteCrawler:
         parsed = urlparse(start_url)
         self.base_domain = parsed.netloc
         self.allowed_domains = {self.base_domain}
+        self.robots = None  # filled in by load_robots() before crawling
 
         # Add common subdomain patterns
         if self.base_domain.startswith('www.'):
@@ -76,11 +80,14 @@ class WebsiteCrawler:
                 return False
 
             # Must be same domain or subdomain
-            if not any(parsed.netloc.endswith(domain) or parsed.netloc == domain for domain in self.allowed_domains):
+            # Same domain or a real subdomain: "evilnrk.no" must not match "nrk.no"
+            if not any(parsed.netloc == d or parsed.netloc.endswith("." + d) for d in self.allowed_domains):
                 return False
 
-            # Skip common non-content files
-            skip_extensions = {'.css', '.js', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.map', '.xml', '.rss'}
+            # Skip non-page files; media would otherwise be read whole into memory as "HTML"
+            skip_extensions = {'.css', '.js', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.map', '.xml', '.rss',
+                               '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif', '.pdf', '.zip',
+                               '.mp4', '.webm', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.m4v', '.3gp', '.ogv', '.mp3'}
             if any(parsed.path.lower().endswith(ext) for ext in skip_extensions):
                 return False
 
@@ -411,9 +418,7 @@ class WebsiteCrawler:
     async def fetch_page(self, session: aiohttp.ClientSession, url: str) -> Optional[str]:
         """Fetch a single page"""
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-            }
+            headers = {'User-Agent': self.USER_AGENT}
             timeout = aiohttp.ClientTimeout(total=30)
 
             async with session.get(url, headers=headers, timeout=timeout) as response:
@@ -478,9 +483,22 @@ class WebsiteCrawler:
             print(f"Error saving content for {url}: {e}")
             self.crawl_stats['errors'] += 1
 
+    async def load_robots(self, session: aiohttp.ClientSession) -> None:
+        """Fetch robots.txt once; if it is missing or unreachable, everything is allowed"""
+        parsed = urlparse(self.start_url)
+        self.robots = RobotFileParser()
+        try:
+            async with session.get(f"{parsed.scheme}://{parsed.netloc}/robots.txt", timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                self.robots.parse((await resp.text()).splitlines() if resp.status == 200 else [])
+        except Exception:
+            self.robots.parse([])
+
     async def crawl_page(self, session: aiohttp.ClientSession, url: str) -> None:
         """Crawl a single page and extract all content"""
         if url in self.visited_urls or len(self.visited_urls) >= self.max_pages:
+            return
+        if self.robots and not self.robots.can_fetch(self.USER_AGENT, url):
+            print(f"Skipping (robots.txt): {url}")
             return
 
         self.visited_urls.add(url)
@@ -509,10 +527,10 @@ class WebsiteCrawler:
 
     async def crawl_website(self, log_callback=None) -> Dict:
         """Main crawling function"""
-        print(f"🕷️ Starting comprehensive crawl of: {self.start_url}")
-        print(f"📊 Max pages: {self.max_pages}")
-        print(f"🏠 Base domain: {self.base_domain}")
-        print(f"🖼️ Images will be downloaded to: {self.images_dir}")
+        print(f"Starting comprehensive crawl of: {self.start_url}")
+        print(f"Max pages: {self.max_pages}")
+        print(f"Base domain: {self.base_domain}")
+        print(f"Images will be downloaded to: {self.images_dir}")
 
         # Initialize
         self.queued_urls.add(self.start_url)
@@ -521,6 +539,7 @@ class WebsiteCrawler:
         connector = aiohttp.TCPConnector(limit=10, limit_per_host=5)
 
         async with aiohttp.ClientSession(connector=connector) as session:
+            await self.load_robots(session)
             while self.queued_urls and len(self.visited_urls) < self.max_pages:
                 # Get next URL
                 current_url = self.queued_urls.pop()
@@ -546,13 +565,13 @@ class WebsiteCrawler:
         # Save final statistics
         self.save_crawl_report()
 
-        print(f"\n🎉 Crawl complete!")
-        print(f"📄 Pages crawled: {self.crawl_stats['pages_crawled']}")
-        print(f"🖼️ Images found: {self.crawl_stats['images_found']}")
-        print(f"📥 Images downloaded: {self.crawl_stats['images_downloaded']}")
-        print(f"🎥 Videos found: {self.crawl_stats['videos_found']}")
-        print(f"💾 HTML files saved: {self.crawl_stats['html_files_saved']}")
-        print(f"❌ Errors: {self.crawl_stats['errors']}")
+        print(f"\nCrawl complete!")
+        print(f"Pages crawled: {self.crawl_stats['pages_crawled']}")
+        print(f"Images found: {self.crawl_stats['images_found']}")
+        print(f"Images downloaded: {self.crawl_stats['images_downloaded']}")
+        print(f"Videos found: {self.crawl_stats['videos_found']}")
+        print(f"HTML files saved: {self.crawl_stats['html_files_saved']}")
+        print(f"Errors: {self.crawl_stats['errors']}")
 
         return self.crawl_stats
 
@@ -600,7 +619,7 @@ class WebsiteCrawler:
                 for url in sorted(self.visited_urls):
                     f.write(f"- {url}\n")
 
-            print(f"📊 Crawl report saved: {report_file}")
+            print(f"Crawl report saved: {report_file}")
 
         except Exception as e:
             print(f"Error saving crawl report: {e}")

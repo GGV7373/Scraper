@@ -3,7 +3,7 @@ import csv
 import json
 from datetime import datetime
 
-def write_report(base, stats, formats=("txt","csv","json","html")):
+def write_report(base, stats, formats=("txt","csv","json","html"), output_dir=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     report_lines = [
         f"Scrape report for '{base}':",
@@ -13,7 +13,7 @@ def write_report(base, stats, formats=("txt","csv","json","html")):
         f"Failed to scrape: {stats['failed']}",
         f"Not useful scrape: {stats['not_useful']}",
     ]
-    report_dir = base
+    report_dir = os.path.join(output_dir or "", base)
     os.makedirs(report_dir, exist_ok=True)
     report_paths = {}
     if "txt" in formats:
@@ -61,5 +61,5 @@ def write_report(base, stats, formats=("txt","csv","json","html")):
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
         report_paths["html"] = html_path
-    # Return the text report path for backward compatibility
-    return report_paths.get("txt")
+    # Prefer the text report; fall back to whichever format was written
+    return report_paths.get("txt") or next(iter(report_paths.values()), None)

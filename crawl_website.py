@@ -5,7 +5,7 @@ Command line interface for the comprehensive website crawler
 
 import argparse
 import asyncio
-from website_crawler import crawl_full_website
+from scraper.website_crawler import crawl_full_website
 
 def main():
     parser = argparse.ArgumentParser(description='Crawl entire website and extract all images, videos, and HTML files')
@@ -20,9 +20,9 @@ def main():
         if args.verbose:
             print(f"[LOG] {msg}")
 
-    print(f"🕷️ Starting full website crawl: {args.url}")
-    print(f"📊 Max pages: {args.max_pages}")
-    print(f"💾 Output directory: {args.output}")
+    print(f"Starting full website crawl: {args.url}")
+    print(f"Max pages: {args.max_pages}")
+    print(f"Output directory: {args.output}")
     print("")
 
     try:
@@ -34,17 +34,18 @@ def main():
         ))
 
         print("\n" + "="*50)
-        print("🎉 CRAWL COMPLETED SUCCESSFULLY!")
+        print("CRAWL COMPLETED SUCCESSFULLY!")
         print("="*50)
-        print(f"📄 Pages crawled: {stats['pages_crawled']}")
-        print(f"🖼️ Images found: {stats['images_found']}")
-        print(f"🎥 Videos found: {stats['videos_found']}")
-        print(f"💾 HTML files saved: {stats['html_files_saved']}")
-        print(f"❌ Errors: {stats['errors']}")
+        print(f"Pages crawled: {stats['pages_crawled']}")
+        print(f"Images found: {stats['images_found']}")
+        print(f"Images downloaded: {stats['images_downloaded']}")
+        print(f"Videos found: {stats['videos_found']}")
+        print(f"HTML files saved: {stats['html_files_saved']}")
+        print(f"Errors: {stats['errors']}")
         print(f"\nResults saved to: {args.output}/")
 
     except Exception as e:
-        print(f"❌ Crawl failed: {e}")
+        print(f"Crawl failed: {e}")
         return 1
 
     return 0
