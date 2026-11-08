@@ -1,5 +1,7 @@
 requests
 beautifulsoup4
 aiohttp
-pillow
-textblob
+
+# Optional: the app runs without these
+pillow    # logo in the GUI
+textblob  # sentiment line in scrape output

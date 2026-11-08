@@ -8,7 +8,7 @@ import json
 
 
 
-async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, tags_to_scrape=None, retries=3, rate_limit=0.5):
+async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, tags_to_scrape=None, retries=3, rate_limit=0.5, output_dir=None):
     # Only log successful fetches/saves, not every attempt
     attempt = 0
     while attempt < retries:
@@ -21,8 +21,7 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                     soup = BeautifulSoup(text, "html.parser")
 
                     # Prepare data for all formats
-                    folder = fetch_and_save.output_dir if hasattr(fetch_and_save, 'output_dir') and fetch_and_save.output_dir else base
-                    folder = os.path.join(folder, base)
+                    folder = os.path.join(output_dir or "", base)
                     os.makedirs(folder, exist_ok=True)
                     base_filename = f"{base}-{suffix.lstrip('.')}"
 
@@ -69,6 +68,8 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                     except Exception:
                         pass
 
+                    saved = []  # log lines, one per file written
+
                     # Save TXT (summary)
                     if 'txt' in formats:
                         lines = []
@@ -86,16 +87,11 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                             lines.append("[keywords] " + ', '.join(keywords))
                         if sentiment:
                             lines.append(f"[sentiment] polarity={sentiment['polarity']:.2f}, subjectivity={sentiment['subjectivity']:.2f}")
-                        if not lines:
-                            stats["not_useful"] += 1
-                        else:
+                        if lines:
                             txt_path = os.path.join(folder, base_filename + ".txt")
                             with open(txt_path, "w", encoding="utf-8") as f:
                                 f.write("\n".join(lines))
-                            msg = f"Saved summary TXT to {txt_path}"
-                            if log_callback:
-                                log_callback(msg)
-                            stats["saved"] += 1
+                            saved.append(f"Saved summary TXT to {txt_path}")
 
                     # Save JSON (full structured data)
                     if 'json' in formats:
@@ -113,29 +109,31 @@ async def fetch_and_save(session, sem, base, suffix, url, log_callback, stats, h
                         json_path = os.path.join(folder, base_filename + ".json")
                         with open(json_path, "w", encoding="utf-8") as f:
                             json.dump(data, f, ensure_ascii=False, indent=2)
-                        msg = f"Saved JSON to {json_path}"
-                        if log_callback:
-                            log_callback(msg)
-                        stats["saved"] += 1
+                        saved.append(f"Saved JSON to {json_path}")
 
                     # Save HTML (raw HTML)
                     if 'html' in formats:
                         html_path = os.path.join(folder, base_filename + ".html")
                         with open(html_path, "w", encoding="utf-8") as f:
                             f.write(text)
-                        msg = f"Saved raw HTML to {html_path}"
-                        if log_callback:
-                            log_callback(msg)
-                        stats["saved"] += 1
+                        saved.append(f"Saved raw HTML to {html_path}")
 
-                    # If nothing was saved, count as not useful
-                    if not any(fmt in formats for fmt in ['txt', 'json', 'html']):
+                    # Count each domain once, and call log_callback once so GUI progress counts domains
+                    if saved:
+                        stats["saved"] += 1
+                        msg = "\n".join(saved)
+                    else:
                         stats["not_useful"] += 1
+                        msg = f"Nothing useful on {url}"
+                    if log_callback:
+                        log_callback(msg)
                     return
         except Exception as e:
             attempt += 1
             if attempt >= retries:
                 stats["failed"] += 1
+                if log_callback:
+                    log_callback(f"Failed {url}: {e}")
             else:
                 await asyncio.sleep(1)  # Wait before retry
         await asyncio.sleep(rate_limit)
@@ -156,12 +154,8 @@ async def save_html_files_async(base, domains, formats=None, log_callback=None, 
     }
     headers = {"User-Agent": "Mozilla/5.0 (compatible; DomainScraper/1.0)"}
     sem = asyncio.Semaphore(max_concurrent)
-    if output_dir:
-        fetch_and_save.output_dir = output_dir
-    else:
-        fetch_and_save.output_dir = None
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, tags_to_scrape, retries, rate_limit) for suffix, url in domains]
+        tasks = [fetch_and_save(session, sem, base, suffix, url, log_callback, stats, headers, formats, tags_to_scrape, retries, rate_limit, output_dir) for suffix, url in domains]
         await asyncio.gather(*tasks)
     return stats
 

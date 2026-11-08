@@ -156,7 +156,7 @@ def start_gui():
             return
         tlds_raw = tlds_entry.get().strip()
         if tlds_raw:
-            tlds = [t.strip() if t.startswith('.') else f'.{t.strip()}' for t in tlds_raw.split(',') if t.strip()]
+            tlds = ['.' + t.strip().lstrip('.') for t in tlds_raw.split(',') if t.strip()]
         else:
             tlds = None
         formats = []
@@ -234,7 +234,7 @@ def run_scraper_thread(base, status_label, log_widget, max_workers, tlds, progre
     rate_limit = getattr(run_scraper_thread, 'rate_limit', 0.5)
     output_dir = getattr(run_scraper_thread, 'output_dir', os.path.abspath(os.getcwd()))
     stats = save_html_files(base, reachable_domains, formats=formats, log_callback=log_callback, tags_to_scrape=tags_to_scrape, rate_limit=rate_limit, output_dir=output_dir)
-    report_path = write_report(base, stats, formats=formats)
+    report_path = write_report(base, stats, formats=formats, output_dir=output_dir)
     status_label.config(text=f"Done! {stats['saved']} domains saved.")
     progress_var.set(100)
     progress_bar.update()

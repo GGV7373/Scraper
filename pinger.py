@@ -24,7 +24,7 @@ def get_all_tlds():
                 print("Error reading TLD cache:", e)
     # Download and cache
     try:
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         lines = resp.text.splitlines()
         tlds = [line.split(",")[0].strip() for line in lines if line.strip() and not line.startswith("#")]
