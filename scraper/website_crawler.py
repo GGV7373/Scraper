@@ -32,6 +32,7 @@ class WebsiteCrawler:
             "html_files_saved": 0,
             "errors": 0
         }
+        self.failures: List[str] = []  # "url: reason", shown in the log and report
 
         # Get domain for crawling limits
         parsed = urlparse(start_url)
@@ -425,15 +426,16 @@ class WebsiteCrawler:
             async with session.get(url, headers=headers, timeout=timeout) as response:
                 if response.status == 200:
                     return await response.text()
-                else:
-                    print(f"HTTP {response.status} for {url}")
-                    return None
+                reason = f"HTTP {response.status}"
+                if response.status in (401, 403, 429):
+                    reason += " (the site blocks automated access)"
         except asyncio.TimeoutError:
-            print(f"Timeout for {url}")
-            return None
+            reason = "timed out"
         except Exception as e:
-            print(f"Error fetching {url}: {e}")
-            return None
+            reason = f"error: {e}"
+        self.failures.append(f"{url}: {reason}")
+        print(f"Failed {url}: {reason}")
+        return None
 
     def save_page_content(self, url: str, html: str, images: List[Dict], videos: List[Dict]) -> None:
         """Save page content to files"""
@@ -560,6 +562,10 @@ class WebsiteCrawler:
                     progress_msg = f"Crawled {self.crawl_stats['pages_crawled']} pages, found {self.crawl_stats['images_found']} images, downloaded {self.crawl_stats['images_downloaded']}, found {self.crawl_stats['videos_found']} videos"
                     log_callback(progress_msg)
 
+        if log_callback:
+            for failure in self.failures:
+                log_callback(f"Failed: {failure}")
+
         # Save final image hash index
         self._save_image_hash_index()
 
@@ -591,7 +597,8 @@ class WebsiteCrawler:
                     'images_directory': str(self.images_dir)
                 },
                 'statistics': self.crawl_stats,
-                'crawled_urls': list(self.visited_urls)
+                'crawled_urls': list(self.visited_urls),
+                'failed_urls': self.failures
             }
 
             report_file = report_dir / 'crawl_report.json'
@@ -619,6 +626,11 @@ class WebsiteCrawler:
                 f.write(f"-------------\n")
                 for url in sorted(self.visited_urls):
                     f.write(f"- {url}\n")
+                if self.failures:
+                    f.write(f"\nFailed URLs:\n")
+                    f.write(f"------------\n")
+                    for failure in self.failures:
+                        f.write(f"- {failure}\n")
 
             print(f"Crawl report saved: {report_file}")
 

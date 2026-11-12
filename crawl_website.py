@@ -34,7 +34,7 @@ def main():
         ))
 
         print("\n" + "="*50)
-        print("CRAWL COMPLETED SUCCESSFULLY!")
+        print("CRAWL COMPLETED" if stats['pages_crawled'] else "CRAWL FAILED: no pages could be fetched")
         print("="*50)
         print(f"Pages crawled: {stats['pages_crawled']}")
         print(f"Images found: {stats['images_found']}")

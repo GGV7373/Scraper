@@ -76,6 +76,14 @@ class ScraperTests(unittest.TestCase):
         self.assertEqual(stats["pages_crawled"], 2)  # index + about, not /secret/
         self.assertEqual(stats["images_downloaded"], 1)
 
+    def test_crawler_reports_why_a_page_failed(self):
+        log = []
+        stats = crawl_website_sync(self.url + "missing.html", self.out.name, max_pages=1, log_callback=log.append)
+        self.assertEqual(stats["pages_crawled"], 0)
+        self.assertIn("Failed: " + self.url + "missing.html: HTTP 404", log)
+        summary = next(Path(self.out.name).glob("*/crawl_summary.txt")).read_text()
+        self.assertIn("missing.html: HTTP 404", summary)
+
     def test_crawler_rejects_lookalike_domains(self):
         c = WebsiteCrawler("https://nrk.no/", self.out.name)
         self.assertTrue(c.is_valid_url("https://tv.nrk.no/page"))

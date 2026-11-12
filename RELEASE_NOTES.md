@@ -15,3 +15,4 @@
 ## Fixes
 - Crawling an address with a port number (for example `localhost:8080`) no longer crashes on Windows.
 - The app logo now shows in the window.
+- When a page can't be fetched, the app log and the crawl report now say why (for example "HTTP 403 (the site blocks automated access)") instead of just counting an error.
