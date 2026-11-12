@@ -45,8 +45,9 @@ class WebsiteCrawler:
         else:
             self.allowed_domains.add(f'www.{self.base_domain}')
 
-        # Create images directory
-        self.images_dir = self.output_dir / self.base_domain / "images"
+        # Folder for this site; netloc may contain ':' (port), which Windows rejects
+        self.site_dir = self.output_dir / self.sanitize_filename(self.base_domain)
+        self.images_dir = self.site_dir / "images"
         self.images_dir.mkdir(parents=True, exist_ok=True)
 
         # Load existing image hash index
@@ -444,7 +445,7 @@ class WebsiteCrawler:
                 path_parts = ['index']
 
             # Create directory structure
-            page_dir = self.output_dir / self.base_domain / '/'.join(path_parts[:-1]) if len(path_parts) > 1 else self.output_dir / self.base_domain
+            page_dir = self.site_dir / '/'.join(path_parts[:-1]) if len(path_parts) > 1 else self.site_dir
             page_dir.mkdir(parents=True, exist_ok=True)
 
             filename_base = path_parts[-1] if path_parts else 'index'
@@ -578,7 +579,7 @@ class WebsiteCrawler:
     def save_crawl_report(self) -> None:
         """Save comprehensive crawl report"""
         try:
-            report_dir = self.output_dir / self.base_domain
+            report_dir = self.site_dir
             report_dir.mkdir(parents=True, exist_ok=True)
 
             report = {
