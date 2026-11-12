@@ -62,7 +62,7 @@ def start_gui():
 
     # Set window icon/logo
     logo_img = None
-    logo_path = resource_path(os.path.join("logo", "logo.png"))
+    logo_path = resource_path(os.path.join("logo", "log.png"))
     try:
         if PIL_AVAILABLE:
             img = Image.open(logo_path)
